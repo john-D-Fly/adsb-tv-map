@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ADSB Live Channels Map</title>
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+  <style>
+    /* Make sure the map takes up full viewport height */
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize the map at a given center and zoom level
+    var map = L.map('map').setView([20, 0], 2);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Example: Define a set of channels with coordinates and YouTube links
+    var channels = [
+      {
+        name: "New York ADS-B Channel",
+        coords: [40.7128, -74.0060],
+        youtubeUrl: "https://www.youtube.com/channel/yourChannelID1"
+      },
+      {
+        name: "London ADS-B Channel",
+        coords: [51.5074, -0.1278],
+        youtubeUrl: "https://www.youtube.com/channel/yourChannelID2"
+      },
+      // Add more channel objects as needed...
+    ];
+
+    // Loop through each channel, add a marker, and bind a popup with a clickable link
+    channels.forEach(function(channel) {
+      var marker = L.marker(channel.coords).addTo(map);
+      marker.bindPopup(
+        "<strong>" + channel.name + "</strong><br>" +
+        "<a href='" + channel.youtubeUrl + "' target='_blank'>Watch Live</a>"
+      );
+    });
+  </script>
+</body>
+</html>
