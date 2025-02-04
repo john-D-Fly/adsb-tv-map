@@ -6,7 +6,7 @@
 
 Our project consists of:
 
-* An **Interactive Map** providing a web-based interface displaying multiple locations with live ADS-B video streams
+* An [**Interactive Map**](https://john-d-fly.github.io/adsb-tv-map/) providing a web-based interface displaying multiple locations with live ADS-B video streams
 * A **Real-Time Data Feeder** powering our map with a custom tar1090 feeder hosted at [globe.decentrafly.org](https://globe.decentrafly.org), which collects live ADS-B data
 * **Stream Integration** where each map marker corresponds to a live YouTube stream for watching live aircraft tracking and viewing the skies
 
