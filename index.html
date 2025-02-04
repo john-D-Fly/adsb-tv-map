@@ -66,14 +66,14 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Initialize the map
+    // Initialize the map with a global view.
     var map = L.map('map').setView([40, -20], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Define static channel markers
+    // Define static channel markers.
     var channels = [
       { name: "Cali Planes", coords: [34.0522, -118.2437], youtubeUrl: "https://www.youtube.com/watch?v=0oHGzApDNHc&ab_channel=CaliPlanes" },
       { name: "LA Flights", coords: [34.0525, -118.2434], youtubeUrl: "https://www.youtube.com/@L.A.FLIGHTS" },
@@ -83,7 +83,8 @@
       { name: "SydSquad (Sydney)", coords: [-33.8688, 151.2093], youtubeUrl: "https://www.youtube.com/watch?v=vb7DuXVpY24&ab_channel=SydSquad" },
       { name: "FlightFocus365 (London Heathrow)", coords: [51.4700, -0.4543], youtubeUrl: "https://www.youtube.com/watch?v=rQCd2aVjRlY&ab_channel=FlightFocus365" }
     ];
-
+    
+    // Add static markers with popups.
     channels.forEach(function(channel) {
       var marker = L.marker(channel.coords).addTo(map);
       marker.bindPopup("<strong>" + channel.name + "</strong><br><a href='" + channel.youtubeUrl + "' target='_blank'>Watch Live</a>");
@@ -93,16 +94,15 @@
        Helper Functions for Arc Interpolation
        ----------------------------------------------- */
 
-    // Computes a control point for a quadratic Bézier curve between two points.
-    //   factor: fraction of the distance to offset (adjusts curvature)
-    //   direction: either 1 or -1 to determine which side of the line the arc is on.
+    // Compute a control point for a quadratic Bézier curve between two points.
+    // "factor" adjusts the curvature (fraction of chord length) and "direction" (1 or -1) sets the side of the arc.
     function computeControlPoint(start, end, factor, direction) {
       var midLat = (start.lat + end.lat) / 2;
       var midLng = (start.lng + end.lng) / 2;
       var dx = end.lng - start.lng;
       var dy = end.lat - start.lat;
       var dist = Math.sqrt(dx * dx + dy * dy);
-      // Unit perpendicular vector (using (dy, -dx)) multiplied by direction
+      // Unit perpendicular vector using (dy, -dx)
       var ux = (dy / dist) * direction;
       var uy = (-dx / dist) * direction;
       // Offset magnitude (factor times the chord length)
@@ -110,7 +110,7 @@
       return L.latLng(midLat + ux * offset, midLng + uy * offset);
     }
 
-    // Quadratic Bézier interpolation function
+    // Quadratic Bézier interpolation function.
     function quadraticBezier(start, cp, end, t) {
       var oneMinusT = 1 - t;
       var lat = oneMinusT * oneMinusT * start.lat + 2 * oneMinusT * t * cp.lat + t * t * end.lat;
@@ -118,13 +118,33 @@
       return L.latLng(lat, lng);
     }
 
+    // Utility function: sample a number of points along a quadratic Bézier curve.
+    function getBezierPoints(start, cp, end, numPoints) {
+      var points = [];
+      for (var i = 0; i <= numPoints; i++) {
+        var t = i / numPoints;
+        points.push(quadraticBezier(start, cp, end, t));
+      }
+      return points;
+    }
+
     /* -----------------------------------------------
-       Animate Airplane (✈️) from Los Angeles to London
+       Animate Airplane (✈️) from Los Angeles to London with a dotted arc
        ----------------------------------------------- */
     var la = L.latLng(34.0522, -118.2437);
     var london = L.latLng(51.4700, -0.4543);
-    // Adjust factor and direction for a realistic arc
+    // Compute control point for a nice arc. Adjust factor/direction as desired.
     var cpLA_London = computeControlPoint(la, london, 0.2, 1);
+
+    // Draw a dotted line along the LA-London arc.
+    var laLondonPoints = getBezierPoints(la, cpLA_London, london, 50);
+    L.polyline(laLondonPoints, {
+      color: 'red',
+      weight: 2,
+      dashArray: '5, 5'
+    }).addTo(map);
+
+    // Create a custom airplane icon using a DivIcon.
     var airplaneIcon = L.divIcon({
       className: 'airplane-icon',
       html: '✈️',
@@ -132,13 +152,13 @@
       iconAnchor: [15, 15]
     });
     var airplaneMarker = L.marker(la, { icon: airplaneIcon }).addTo(map);
-    var cycleDuration = 20000; // 20 seconds for a full round trip
+
+    var cycleDuration = 20000; // 20 seconds for a full round trip.
     var startTime = performance.now();
 
     function animateAirplane() {
       var now = performance.now();
       var elapsed = now - startTime;
-      // Oscillate smoothly between 0 and 1 and back
       var t = 0.5 * (1 - Math.cos(2 * Math.PI * (elapsed % cycleDuration) / cycleDuration));
       var pos = quadraticBezier(la, cpLA_London, london, t);
       airplaneMarker.setLatLng(pos);
@@ -147,11 +167,21 @@
     animateAirplane();
 
     /* -----------------------------------------------
-       Animate Private Plane (🛩️) from Sydney to London
+       Animate Private Plane (🛩️) from Sydney to London with a dotted arc
        ----------------------------------------------- */
     var sydney = L.latLng(-33.8688, 151.2093);
-    // Adjust factor and direction to change the curvature of the Sydney-London arc
+    // Compute a control point for the Sydney-London arc.
     var cpSydney_London = computeControlPoint(sydney, london, 0.25, -1);
+
+    // Draw a dotted line along the Sydney-London arc.
+    var sydneyLondonPoints = getBezierPoints(sydney, cpSydney_London, london, 50);
+    L.polyline(sydneyLondonPoints, {
+      color: 'blue',
+      weight: 2,
+      dashArray: '5, 5'
+    }).addTo(map);
+
+    // Create a custom private plane icon using a different emoji.
     var privatePlaneIcon = L.divIcon({
       className: 'airplane-icon',
       html: '🛩️',
@@ -159,7 +189,8 @@
       iconAnchor: [15, 15]
     });
     var privatePlaneMarker = L.marker(sydney, { icon: privatePlaneIcon }).addTo(map);
-    var cycleDurationPrivate = 25000; // 25 seconds for a full round trip
+
+    var cycleDurationPrivate = 25000; // 25 seconds for a full round trip.
     var startTimePrivate = performance.now();
 
     function animatePrivatePlane() {
