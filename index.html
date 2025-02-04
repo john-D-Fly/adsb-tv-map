@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>ADSB.TV Live Map</title>
-  <!-- Leaflet CSS for the map -->
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <!-- Custom CSS Styling -->
   <style>
-    /* Reset default margins and paddings */
+    /* Reset defaults */
     * {
       margin: 0;
       padding: 0;
@@ -40,31 +40,20 @@
       z-index: 2;
       position: relative;
     }
-    .banner .airplane {
-      position: absolute;
-      top: 50%;
-      left: -50px;
-      transform: translateY(-50%);
-      font-size: 2rem;
-      z-index: 1;
-      animation: fly 10s linear infinite;
-    }
-    @keyframes fly {
-      0% {
-        left: -50px;
-      }
-      100% {
-        left: 100%;
-      }
-    }
     
     /* Map container styling */
     #map {
-      height: calc(100vh - 100px); /* Adjust height to account for banner height */
+      height: calc(100vh - 100px); /* Adjust height to account for banner */
       width: 100%;
     }
     
-    /* Optional: Enhance popup styling */
+    /* Style for the moving airplane marker */
+    .airplane-icon {
+      font-size: 30px;
+      /* Optionally, add rotation styling here */
+    }
+    
+    /* Optional: Enhance Leaflet popup styling */
     .leaflet-popup-content-wrapper {
       background: #fff;
       border-radius: 8px;
@@ -76,30 +65,28 @@
   </style>
 </head>
 <body>
-  <!-- Banner with ADSB.TV text, sponsor text, and animated airplane emoji -->
+  <!-- Banner with ADSB.TV text and sponsor info -->
   <div class="banner">
     <span class="banner-text">ADSB.TV</span>
     <div class="sponsor-text">Brought to you by Decentrafly, Inc.</div>
-    <span class="airplane">✈️</span>
   </div>
   
   <!-- Map Container -->
   <div id="map"></div>
   
-  <!-- Leaflet JS for interactive maps -->
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Initialize the map centered near Los Angeles
-    var map = L.map('map').setView([34.0522, -118.2437], 2);
+    // Initialize the map with a global view.
+    var map = L.map('map').setView([40, -20], 2);
 
-    // Add OpenStreetMap tiles
+    // Add OpenStreetMap tiles.
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Define channel markers with coordinates and YouTube links.
-    // Los Angeles markers are slightly offset to avoid overlapping.
+    // Define channel markers (example channels, adjust as needed).
     var channels = [
       {
         name: "Cali Planes",
@@ -118,27 +105,27 @@
       },
       {
         name: "Lisbon Airport Spotting",
-        coords: [38.7223, -9.1393],  // Lisbon, Portugal
+        coords: [38.7223, -9.1393],
         youtubeUrl: "https://www.youtube.com/watch?v=qqQLGBQDrc0&ab_channel=LisbonAirportSpotting"
       },
       {
         name: "ThinkPlanes (Manchester)",
-        coords: [53.4808, -2.2426],  // Manchester, England
+        coords: [53.4808, -2.2426],
         youtubeUrl: "https://www.youtube.com/watch?v=fS1X7NO8IzM&ab_channel=ThinkPlanes"
       },
       {
         name: "SydSquad (Sydney)",
-        coords: [-33.8688, 151.2093],  // Sydney, Australia
+        coords: [-33.8688, 151.2093],
         youtubeUrl: "https://www.youtube.com/watch?v=vb7DuXVpY24&ab_channel=SydSquad"
       },
       {
         name: "FlightFocus365 (London Heathrow)",
-        coords: [51.4700, -0.4543],  // London Heathrow, England
+        coords: [51.4700, -0.4543],
         youtubeUrl: "https://www.youtube.com/watch?v=rQCd2aVjRlY&ab_channel=FlightFocus365"
       }
     ];
 
-    // Add markers and bind popups with channel details and links.
+    // Add markers and popups for each channel.
     channels.forEach(function(channel) {
       var marker = L.marker(channel.coords).addTo(map);
       marker.bindPopup(
@@ -146,6 +133,49 @@
         "<a href='" + channel.youtubeUrl + "' target='_blank'>Watch Live</a>"
       );
     });
+
+    /* --------------------------------------------------
+       Animate an airplane marker moving between LA and London
+       -------------------------------------------------- */
+
+    // Define start and end coordinates.
+    var la = L.latLng(34.0522, -118.2437);
+    var london = L.latLng(51.4700, -0.4543);
+
+    // Create a custom airplane icon using a DivIcon.
+    var airplaneIcon = L.divIcon({
+      className: 'airplane-icon',
+      html: '✈️',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+
+    // Create the airplane marker at Los Angeles.
+    var airplaneMarker = L.marker(la, { icon: airplaneIcon }).addTo(map);
+
+    // Helper function to interpolate between two LatLng points.
+    function interpolate(p1, p2, t) {
+      var lat = p1.lat + (p2.lat - p1.lat) * t;
+      var lng = p1.lng + (p2.lng - p1.lng) * t;
+      return L.latLng(lat, lng);
+    }
+
+    // Animation parameters.
+    var cycleDuration = 20000; // Duration (in ms) for a full round trip (LA -> London -> LA).
+    var startTime = performance.now();
+
+    // Animation loop: Uses a cosine function to smoothly move the marker back and forth.
+    function animateAirplane() {
+      var now = performance.now();
+      var elapsed = now - startTime;
+      // The cosine function maps elapsed time into a smooth oscillation between 0 and 1.
+      var t = 0.5 * (1 - Math.cos(2 * Math.PI * (elapsed % cycleDuration) / cycleDuration));
+      var pos = interpolate(la, london, t);
+      airplaneMarker.setLatLng(pos);
+      requestAnimationFrame(animateAirplane);
+    }
+    
+    animateAirplane();
   </script>
 </body>
 </html>
