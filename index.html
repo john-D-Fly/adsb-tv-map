@@ -2,28 +2,88 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ADSB Live Channels Map</title>
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
+  <title>ADSB.TV Live Map</title>
+  <!-- Leaflet CSS for the map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Custom CSS Styling -->
   <style>
-    /* Make sure the map takes up full viewport height */
+    /* Reset some default styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body, html {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: #f0f0f0;
+      overflow-x: hidden;
+    }
+    
+    /* Banner styling */
+    .banner {
+      background: linear-gradient(90deg, #0d47a1, #1976d2);
+      color: #fff;
+      font-size: 2rem;
+      padding: 15px 10px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .banner .banner-text {
+      position: relative;
+      z-index: 2;
+    }
+    .banner .airplane {
+      position: absolute;
+      top: 50%;
+      left: -50px;
+      transform: translateY(-50%);
+      font-size: 2rem;
+      z-index: 1;
+      animation: fly 10s linear infinite;
+    }
+    @keyframes fly {
+      0% {
+        left: -50px;
+      }
+      100% {
+        left: 100%;
+      }
+    }
+    
+    /* Map container styling */
     #map {
-      height: 100vh;
+      height: calc(100vh - 70px); /* Adjust height to account for banner */
       width: 100%;
+    }
+    
+    /* Optional: Add a hover effect on map markers (via popup styling) */
+    .leaflet-popup-content-wrapper {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    .leaflet-popup-tip {
+      background: #fff;
     }
   </style>
 </head>
 <body>
+  <!-- Banner with ADSB.TV text and animated airplane emoji -->
+  <div class="banner">
+    <span class="banner-text">ADSB.TV</span>
+    <span class="airplane">✈️</span>
+  </div>
+  
+  <!-- Map Container -->
   <div id="map"></div>
   
-  <!-- Leaflet JS -->
+  <!-- Leaflet JS for interactive maps -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Initialize the map at a given center and zoom level
-    var map = L.map('map').setView([20, 0], 2);
+    // Initialize the map centered roughly on Los Angeles to start with a familiar view,
+    // then zoom out to see markers around the world.
+    var map = L.map('map').setView([34.0522, -118.2437], 2);
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -31,22 +91,47 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Example: Define a set of channels with coordinates and YouTube links
+    // Define the channels with their coordinates and YouTube links.
+    // For the Los Angeles markers, slight offsets ensure they don’t overlap.
     var channels = [
       {
-        name: "New York ADS-B Channel",
-        coords: [40.7128, -74.0060],
-        youtubeUrl: "https://www.youtube.com/channel/yourChannelID1"
+        name: "Cali Planes",
+        coords: [34.0522, -118.2437],
+        youtubeUrl: "https://www.youtube.com/watch?v=0oHGzApDNHc&ab_channel=CaliPlanes"
       },
       {
-        name: "London ADS-B Channel",
-        coords: [51.5074, -0.1278],
-        youtubeUrl: "https://www.youtube.com/channel/yourChannelID2"
+        name: "LA Flights",
+        coords: [34.0525, -118.2434],
+        youtubeUrl: "https://www.youtube.com/@L.A.FLIGHTS"
       },
-      // Add more channel objects as needed...
+      {
+        name: "Airline Videos",
+        coords: [34.0520, -118.2440],
+        youtubeUrl: "https://www.youtube.com/@AIRLINEVIDEOS"
+      },
+      {
+        name: "Lisbon Airport Spotting",
+        coords: [38.7223, -9.1393],  // Lisbon, Portugal
+        youtubeUrl: "https://www.youtube.com/watch?v=qqQLGBQDrc0&ab_channel=LisbonAirportSpotting"
+      },
+      {
+        name: "ThinkPlanes (Manchester)",
+        coords: [53.4808, -2.2426],  // Manchester, England
+        youtubeUrl: "https://www.youtube.com/watch?v=fS1X7NO8IzM&ab_channel=ThinkPlanes"
+      },
+      {
+        name: "SydSquad (Sydney)",
+        coords: [-33.8688, 151.2093],  // Sydney, Australia
+        youtubeUrl: "https://www.youtube.com/watch?v=vb7DuXVpY24&ab_channel=SydSquad"
+      },
+      {
+        name: "FlightFocus365 (London Heathrow)",
+        coords: [51.4700, -0.4543],  // London Heathrow, England
+        youtubeUrl: "https://www.youtube.com/watch?v=rQCd2aVjRlY&ab_channel=FlightFocus365"
+      }
     ];
 
-    // Loop through each channel, add a marker, and bind a popup with a clickable link
+    // Add markers for each channel to the map
     channels.forEach(function(channel) {
       var marker = L.marker(channel.coords).addTo(map);
       marker.bindPopup(
