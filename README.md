@@ -1,5 +1,3 @@
-I'll help convert this content to markdown format. I'll maintain the structure while ensuring proper markdown formatting.
-
 # ADSB.tv by Decentrafly, Inc.
 
 **ADSB.tv** is an innovative project by **Decentrafly, Inc.** that aggregates live ADS-B data and integrates it with real-time YouTube streams from various global locations. Our mission is to provide aviation enthusiasts and the public with an interactive map that not only shows live aircraft tracking but also streams live ADS-B video feeds.
