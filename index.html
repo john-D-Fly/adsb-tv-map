@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <!-- Custom CSS Styling -->
   <style>
-    /* Reset some default styles */
+    /* Reset default margins and paddings */
     * {
       margin: 0;
       padding: 0;
@@ -23,15 +23,22 @@
     .banner {
       background: linear-gradient(90deg, #0d47a1, #1976d2);
       color: #fff;
-      font-size: 2rem;
       padding: 15px 10px;
       text-align: center;
       position: relative;
       overflow: hidden;
     }
     .banner .banner-text {
-      position: relative;
+      font-size: 2.5rem;
+      font-weight: bold;
       z-index: 2;
+      position: relative;
+    }
+    .banner .sponsor-text {
+      font-size: 1rem;
+      margin-top: 5px;
+      z-index: 2;
+      position: relative;
     }
     .banner .airplane {
       position: absolute;
@@ -53,11 +60,11 @@
     
     /* Map container styling */
     #map {
-      height: calc(100vh - 70px); /* Adjust height to account for banner */
+      height: calc(100vh - 100px); /* Adjust height to account for banner height */
       width: 100%;
     }
     
-    /* Optional: Add a hover effect on map markers (via popup styling) */
+    /* Optional: Enhance popup styling */
     .leaflet-popup-content-wrapper {
       background: #fff;
       border-radius: 8px;
@@ -69,9 +76,10 @@
   </style>
 </head>
 <body>
-  <!-- Banner with ADSB.TV text and animated airplane emoji -->
+  <!-- Banner with ADSB.TV text, sponsor text, and animated airplane emoji -->
   <div class="banner">
     <span class="banner-text">ADSB.TV</span>
+    <div class="sponsor-text">Brought to you by Decentrafly, Inc.</div>
     <span class="airplane">✈️</span>
   </div>
   
@@ -81,8 +89,7 @@
   <!-- Leaflet JS for interactive maps -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Initialize the map centered roughly on Los Angeles to start with a familiar view,
-    // then zoom out to see markers around the world.
+    // Initialize the map centered near Los Angeles
     var map = L.map('map').setView([34.0522, -118.2437], 2);
 
     // Add OpenStreetMap tiles
@@ -91,8 +98,8 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Define the channels with their coordinates and YouTube links.
-    // For the Los Angeles markers, slight offsets ensure they don’t overlap.
+    // Define channel markers with coordinates and YouTube links.
+    // Los Angeles markers are slightly offset to avoid overlapping.
     var channels = [
       {
         name: "Cali Planes",
@@ -131,7 +138,7 @@
       }
     ];
 
-    // Add markers for each channel to the map
+    // Add markers and bind popups with channel details and links.
     channels.forEach(function(channel) {
       var marker = L.marker(channel.coords).addTo(map);
       marker.bindPopup(
