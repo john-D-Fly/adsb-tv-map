@@ -47,20 +47,9 @@
       width: 100%;
     }
     
-    /* Style for the moving airplane marker */
+    /* Styling for moving airplane icons */
     .airplane-icon {
       font-size: 30px;
-      /* Optionally, add rotation styling here */
-    }
-    
-    /* Optional: Enhance Leaflet popup styling */
-    .leaflet-popup-content-wrapper {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-    }
-    .leaflet-popup-tip {
-      background: #fff;
     }
   </style>
 </head>
@@ -77,105 +66,111 @@
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script>
-    // Initialize the map with a global view.
+    // Initialize the map
     var map = L.map('map').setView([40, -20], 2);
-
-    // Add OpenStreetMap tiles.
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Define channel markers (example channels, adjust as needed).
+    // Define static channel markers
     var channels = [
-      {
-        name: "Cali Planes",
-        coords: [34.0522, -118.2437],
-        youtubeUrl: "https://www.youtube.com/watch?v=0oHGzApDNHc&ab_channel=CaliPlanes"
-      },
-      {
-        name: "LA Flights",
-        coords: [34.0525, -118.2434],
-        youtubeUrl: "https://www.youtube.com/@L.A.FLIGHTS"
-      },
-      {
-        name: "Airline Videos",
-        coords: [34.0520, -118.2440],
-        youtubeUrl: "https://www.youtube.com/@AIRLINEVIDEOS"
-      },
-      {
-        name: "Lisbon Airport Spotting",
-        coords: [38.7223, -9.1393],
-        youtubeUrl: "https://www.youtube.com/watch?v=qqQLGBQDrc0&ab_channel=LisbonAirportSpotting"
-      },
-      {
-        name: "ThinkPlanes (Manchester)",
-        coords: [53.4808, -2.2426],
-        youtubeUrl: "https://www.youtube.com/watch?v=fS1X7NO8IzM&ab_channel=ThinkPlanes"
-      },
-      {
-        name: "SydSquad (Sydney)",
-        coords: [-33.8688, 151.2093],
-        youtubeUrl: "https://www.youtube.com/watch?v=vb7DuXVpY24&ab_channel=SydSquad"
-      },
-      {
-        name: "FlightFocus365 (London Heathrow)",
-        coords: [51.4700, -0.4543],
-        youtubeUrl: "https://www.youtube.com/watch?v=rQCd2aVjRlY&ab_channel=FlightFocus365"
-      }
+      { name: "Cali Planes", coords: [34.0522, -118.2437], youtubeUrl: "https://www.youtube.com/watch?v=0oHGzApDNHc&ab_channel=CaliPlanes" },
+      { name: "LA Flights", coords: [34.0525, -118.2434], youtubeUrl: "https://www.youtube.com/@L.A.FLIGHTS" },
+      { name: "Airline Videos", coords: [34.0520, -118.2440], youtubeUrl: "https://www.youtube.com/@AIRLINEVIDEOS" },
+      { name: "Lisbon Airport Spotting", coords: [38.7223, -9.1393], youtubeUrl: "https://www.youtube.com/watch?v=qqQLGBQDrc0&ab_channel=LisbonAirportSpotting" },
+      { name: "ThinkPlanes (Manchester)", coords: [53.4808, -2.2426], youtubeUrl: "https://www.youtube.com/watch?v=fS1X7NO8IzM&ab_channel=ThinkPlanes" },
+      { name: "SydSquad (Sydney)", coords: [-33.8688, 151.2093], youtubeUrl: "https://www.youtube.com/watch?v=vb7DuXVpY24&ab_channel=SydSquad" },
+      { name: "FlightFocus365 (London Heathrow)", coords: [51.4700, -0.4543], youtubeUrl: "https://www.youtube.com/watch?v=rQCd2aVjRlY&ab_channel=FlightFocus365" }
     ];
 
-    // Add markers and popups for each channel.
     channels.forEach(function(channel) {
       var marker = L.marker(channel.coords).addTo(map);
-      marker.bindPopup(
-        "<strong>" + channel.name + "</strong><br>" +
-        "<a href='" + channel.youtubeUrl + "' target='_blank'>Watch Live</a>"
-      );
+      marker.bindPopup("<strong>" + channel.name + "</strong><br><a href='" + channel.youtubeUrl + "' target='_blank'>Watch Live</a>");
     });
 
-    /* --------------------------------------------------
-       Animate an airplane marker moving between LA and London
-       -------------------------------------------------- */
+    /* -----------------------------------------------
+       Helper Functions for Arc Interpolation
+       ----------------------------------------------- */
 
-    // Define start and end coordinates.
+    // Computes a control point for a quadratic Bézier curve between two points.
+    //   factor: fraction of the distance to offset (adjusts curvature)
+    //   direction: either 1 or -1 to determine which side of the line the arc is on.
+    function computeControlPoint(start, end, factor, direction) {
+      var midLat = (start.lat + end.lat) / 2;
+      var midLng = (start.lng + end.lng) / 2;
+      var dx = end.lng - start.lng;
+      var dy = end.lat - start.lat;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      // Unit perpendicular vector (using (dy, -dx)) multiplied by direction
+      var ux = (dy / dist) * direction;
+      var uy = (-dx / dist) * direction;
+      // Offset magnitude (factor times the chord length)
+      var offset = factor * dist;
+      return L.latLng(midLat + ux * offset, midLng + uy * offset);
+    }
+
+    // Quadratic Bézier interpolation function
+    function quadraticBezier(start, cp, end, t) {
+      var oneMinusT = 1 - t;
+      var lat = oneMinusT * oneMinusT * start.lat + 2 * oneMinusT * t * cp.lat + t * t * end.lat;
+      var lng = oneMinusT * oneMinusT * start.lng + 2 * oneMinusT * t * cp.lng + t * t * end.lng;
+      return L.latLng(lat, lng);
+    }
+
+    /* -----------------------------------------------
+       Animate Airplane (✈️) from Los Angeles to London
+       ----------------------------------------------- */
     var la = L.latLng(34.0522, -118.2437);
     var london = L.latLng(51.4700, -0.4543);
-
-    // Create a custom airplane icon using a DivIcon.
+    // Adjust factor and direction for a realistic arc
+    var cpLA_London = computeControlPoint(la, london, 0.2, 1);
     var airplaneIcon = L.divIcon({
       className: 'airplane-icon',
       html: '✈️',
       iconSize: [30, 30],
       iconAnchor: [15, 15]
     });
-
-    // Create the airplane marker at Los Angeles.
     var airplaneMarker = L.marker(la, { icon: airplaneIcon }).addTo(map);
-
-    // Helper function to interpolate between two LatLng points.
-    function interpolate(p1, p2, t) {
-      var lat = p1.lat + (p2.lat - p1.lat) * t;
-      var lng = p1.lng + (p2.lng - p1.lng) * t;
-      return L.latLng(lat, lng);
-    }
-
-    // Animation parameters.
-    var cycleDuration = 20000; // Duration (in ms) for a full round trip (LA -> London -> LA).
+    var cycleDuration = 20000; // 20 seconds for a full round trip
     var startTime = performance.now();
 
-    // Animation loop: Uses a cosine function to smoothly move the marker back and forth.
     function animateAirplane() {
       var now = performance.now();
       var elapsed = now - startTime;
-      // The cosine function maps elapsed time into a smooth oscillation between 0 and 1.
+      // Oscillate smoothly between 0 and 1 and back
       var t = 0.5 * (1 - Math.cos(2 * Math.PI * (elapsed % cycleDuration) / cycleDuration));
-      var pos = interpolate(la, london, t);
+      var pos = quadraticBezier(la, cpLA_London, london, t);
       airplaneMarker.setLatLng(pos);
       requestAnimationFrame(animateAirplane);
     }
-    
     animateAirplane();
+
+    /* -----------------------------------------------
+       Animate Private Plane (🛩️) from Sydney to London
+       ----------------------------------------------- */
+    var sydney = L.latLng(-33.8688, 151.2093);
+    // Adjust factor and direction to change the curvature of the Sydney-London arc
+    var cpSydney_London = computeControlPoint(sydney, london, 0.25, -1);
+    var privatePlaneIcon = L.divIcon({
+      className: 'airplane-icon',
+      html: '🛩️',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+    var privatePlaneMarker = L.marker(sydney, { icon: privatePlaneIcon }).addTo(map);
+    var cycleDurationPrivate = 25000; // 25 seconds for a full round trip
+    var startTimePrivate = performance.now();
+
+    function animatePrivatePlane() {
+      var now = performance.now();
+      var elapsed = now - startTimePrivate;
+      var t = 0.5 * (1 - Math.cos(2 * Math.PI * (elapsed % cycleDurationPrivate) / cycleDurationPrivate));
+      var pos = quadraticBezier(sydney, cpSydney_London, london, t);
+      privatePlaneMarker.setLatLng(pos);
+      requestAnimationFrame(animatePrivatePlane);
+    }
+    animatePrivatePlane();
   </script>
 </body>
 </html>
